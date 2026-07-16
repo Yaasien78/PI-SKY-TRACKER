@@ -7,7 +7,6 @@
 * { margin:0; padding:0; box-sizing:border-box; font-family:Arial; }
 body { background:#000; color:white; overflow:hidden; }
 
-/* HEADER RAPI */
 #gameHeader {
   position:absolute; top:0; left:0; width:100%; height:65px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
@@ -24,22 +23,19 @@ body { background:#000; color:white; overflow:hidden; }
   background:#1a1a1a; border:2px solid #6F2DA8; border-radius:12px;
   flex:1; height:100%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  position:relative;
 }
+
+#soundBtn {
+  position:absolute; top:70px; right:10px; z-index:6;
+  background:rgba(0,0,0,0.6); border:1px solid #6F2DA8; color:white;
+  font-size:18px; padding:8px 10px; border-radius:50%; cursor:pointer;
+}
+
 #scoreText { font-size:16px; font-weight:bold; color:#FFD700; }
 #scoreSub { font-size:11px; }
 
-/* TOMBOL SPEAKER KECIL */
-#soundBtn {
-  position:absolute; top:3px; right:5px;
-  background:transparent; border:none; color:white;
-  font-size:16px; padding:2px; cursor:pointer;
-}
-
-/* CANVAS */
 #gameCanvas { display:block; touch-action:none; background:#000; position:absolute; top:65px; }
 
-/* FOOTER RAPI */
 #gameFooter {
   position:absolute; bottom:0; left:0; width:100%; height:75px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
@@ -55,7 +51,6 @@ body { background:#000; color:white; overflow:hidden; }
 #fireBtn { background:#FF2D55; font-size:18px; }
 #bomBtn { background:#FF6D00; }
 
-/* POPUP */
 .popup {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   background:#222; padding:25px; border-radius:15px; text-align:center;
@@ -69,28 +64,25 @@ body { background:#000; color:white; overflow:hidden; }
 </head>
 
 <body>
-<!-- HEADER -->
 <div id="gameHeader">
   <button class="headerBtn" onclick="openPopup('topupPopup')">💎<br>TOP UP</button>
   <div id="scoreBox">
-    <button id="soundBtn" onclick="toggleSound()">🔊</button>
     <div id="scoreText">SCORE: <span id="score">0</span></div>
     <div id="scoreSub">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
   </div>
   <button class="headerBtn" id="startBtn" onclick="startGame()">START</button>
 </div>
 
-<!-- GAME -->
+<button id="soundBtn" onclick="toggleSound()">🔊</button>
+
 <canvas id="gameCanvas"></canvas>
 
-<!-- FOOTER -->
 <div id="gameFooter">
   <button class="footerBtn" onclick="openPopup('upgradePopup')">⚡<br>UPGRADE</button>
   <button class="footerBtn" id="fireBtn" onclick="fireBullet()">FIRE<br>🔥</button>
   <button class="footerBtn" id="bomBtn" onclick="useBomb()">💣<br>BOM 3</button>
 </div>
 
-<!-- POPUP -->
 <div id="topupPopup" class="popup"><h2>💎 TOP UP PI</h2><p>Tambah 10 Pi Game Gratis</p><button onclick="topUp()">Klaim 10 Pi</button><button onclick="closePopup('topupPopup')">Tutup</button></div>
 <div id="upgradePopup" class="popup"><h2>⚡ UPGRADE</h2><p>Harga: 5 Pi</p><p>Damage +1 & Kecepatan +</p><button onclick="upgrade()">Beli Upgrade</button><button onclick="closePopup('upgradePopup')">Tutup</button></div>
 <div id="gameOverPopup" class="popup"><h2>GAME OVER</h2><p id="popupText"></p><button id="payBtn">Lanjut 1 Pi</button><button onclick="closePopup('gameOverPopup')">Keluar</button></div>
@@ -98,6 +90,7 @@ body { background:#000; color:white; overflow:hidden; }
 <script>
 let isGameRunning = false;
 let soundOn = true;
+let musicPlaying = false;
 let gameData = { pi: 10, lives: 7, level: 1, score: 0, highScore: 0, bombs: 3, damage: 1 };
 
 const canvas = document.getElementById('gameCanvas');
@@ -110,13 +103,147 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// AUDIO SIMPLE
-const shootSound = new Audio("data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA="); // suara tembak pendek
+// ===== BACKGROUND NEBULA =====
+let stars = [];
+let nebulaOffset = 0;
 
-function playSound(sound){ if(soundOn) sound.play(); }
+function initBackground(){
+  stars = [];
+  for(let i=0; i<100; i++){
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2,
+      speed: 0.5 + Math.random()
+    });
+  }
+}
+
+function drawBackground(){
+  nebulaOffset += 0.2;
+  const gradient = ctx.createLinearGradient(0, nebulaOffset, canvas.width, canvas.height + nebulaOffset);
+  gradient.addColorStop(0, '#1a0033');
+  gradient.addColorStop(0.5, '#330066');
+  gradient.addColorStop(1, '#000011');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  stars.forEach(star => {
+    star.y += star.speed;
+    if(star.y > canvas.height){
+      star.y = 0;
+      star.x = Math.random() * canvas.width;
+    }
+    ctx.fillStyle = 'white';
+    ctx.globalAlpha = 0.5 + Math.random() * 0.5;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ===== EFEK LEDAKAN =====
+let particles = [];
+
+function createExplosion(x, y, color){
+  for(let i=0; i<15; i++){
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      size: Math.random() * 4 + 2,
+      color: color,
+      life: 30
+    });
+  }
+}
+
+function updateParticles(){
+  particles.forEach((p, i) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    p.size *= 0.95;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life / 30;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    if(p.life <= 0) particles.splice(i, 1);
+  });
+}
+
+// ===== AUDIO SYSTEM =====
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let musicInterval;
+
+function playSound(type){
+  if(!soundOn) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if(type === 'shoot'){
+    osc.frequency.value = 800;
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  }
+  if(type === 'hit'){
+    osc.frequency.value = 200;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+  }
+  if(type === 'explosion'){
+    osc.frequency.value = 100;
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+  }
+  if(type === 'gameover'){
+    osc.frequency.value = 150;
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+  }
+}
+
+function playMusic(){
+  if(musicPlaying) return;
+  musicPlaying = true;
+  let note = 0;
+  const notes = [523, 659, 784, 1046, 784, 659];
+
+  musicInterval = setInterval(() => {
+    if(!soundOn ||!isGameRunning) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = notes;
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+    note = (note + 1) % notes.length;
+  }, 300);
+}
+
+function stopMusic(){
+  musicPlaying = false;
+  clearInterval(musicInterval);
+}
+
 function toggleSound(){
   soundOn =!soundOn;
   document.getElementById('soundBtn').innerText = soundOn? "🔊" : "🔇";
+  if(soundOn && isGameRunning) playMusic();
+  if(!soundOn) stopMusic();
 }
 
 // GAME
@@ -125,36 +252,45 @@ let bullets = [];
 let enemies = [];
 let gameLoop;
 
-canvas.addEventListener('touchstart', e => { movePlayer(e); });
+const enemyColors = ['#FF2D55', '#00D4FF', '#FFD700', '#00FF88', '#FF00FF'];
+
+canvas.addEventListener('touchstart', e => {
+  audioCtx.resume();
+  if(!musicPlaying && isGameRunning) playMusic();
+  movePlayer(e);
+});
 canvas.addEventListener('touchmove', e => { movePlayer(e); });
 function movePlayer(e){
   e.preventDefault();
   let touch = e.touches[0];
   if(touch.clientY > 65 && touch.clientY < window.innerHeight - 75){
     player.x = touch.clientX;
-    player.y = touch.clientY - 65; // -65 karena ada header
+    player.y = touch.clientY - 65;
   }
 }
 
 function startGame() {
   if(isGameRunning) return;
+  audioCtx.resume();
+  initBackground();
   player.x = canvas.width/2;
-  player.y = canvas.height-50;
+  player.y = canvas.height-80;
   isGameRunning = true;
   resetGame();
+  playMusic();
   gameLoop = setInterval(updateGame, 1000/60);
   document.getElementById('startBtn').innerText = "PAUSE";
 }
 
 function resetGame() {
   gameData.lives = 7; gameData.level = 1; gameData.score = 0; gameData.bombs = 3;
-  bullets = []; enemies = []; updateUI();
+  bullets = []; enemies = []; particles = []; updateUI();
 }
 
 function fireBullet() {
   if (isGameRunning) {
-    bullets.push({x: player.x, y: player.y-20});
-    playSound(shootSound);
+    bullets.push({x: player.x, y: player.y-60});
+    playSound('shoot');
   }
 }
 
@@ -180,59 +316,76 @@ function upgrade() {
 function useBomb() {
   if(gameData.bombs > 0 && isGameRunning){
     gameData.bombs--;
+    enemies.forEach(e => createExplosion(e.x, e.y, e.color)); // ledakin semua
     enemies = [];
     gameData.score += 50;
+    playSound('explosion');
     alert('BOM MELEDAK! +50 Score');
     updateUI();
   } else { alert('BOM HABIS!'); }
 }
 
 function drawPlayer() {
-  // Pesawat
+  const size = 3;
   ctx.fillStyle = '#6F2DA8';
   ctx.beginPath();
-  ctx.moveTo(player.x, player.y - 20);
-  ctx.lineTo(player.x - 15, player.y + 10);
-  ctx.lineTo(player.x + 15, player.y + 10);
+  ctx.moveTo(player.x, player.y - 20*size);
+  ctx.lineTo(player.x - 15*size, player.y + 10*size);
+  ctx.lineTo(player.x + 15*size, player.y + 10*size);
   ctx.closePath();
   ctx.fill();
-  
-  // LOGO PI DI TENGAH BADAN PESAWAT
+
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.arc(player.x, player.y - 5, 9, 0, Math.PI * 2); // di tengah badan
+  ctx.arc(player.x, player.y - 5*size, 9*size, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#6F2DA8';
-  ctx.font = "bold 12px Arial";
+  ctx.font = `bold ${12*size}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText("π", player.x, player.y - 1);
-  
-  // Api
+  ctx.fillText("π", player.x, player.y - 1*size);
+
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.moveTo(player.x, player.y + 10);
-  ctx.lineTo(player.x - 5, player.y + 20);
-  ctx.lineTo(player.x + 5, player.y + 20);
+  ctx.moveTo(player.x, player.y + 10*size);
+  ctx.lineTo(player.x - 5*size, player.y + 20*size);
+  ctx.lineTo(player.x + 5*size, player.y + 20*size);
   ctx.closePath();
   ctx.fill();
 }
 
-function updateGame() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  // Bintang
-  ctx.fillStyle = 'white';
-  for(let i=0; i<50; i++){ ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 1, 1); }
+function drawEnemyPlane(x, y, size, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 10);
+  ctx.lineTo(x - 8, y + 5);
+  ctx.lineTo(x + 8, y + 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(x-12, y-2, 24, 4);
+}
 
+function updateGame() {
+  drawBackground();
+  updateParticles(); // UPDATE LEDAKAN
   drawPlayer();
 
-  if (Math.random() < 0.03 + gameData.level*0.002) enemies.push({x: Math.random()*canvas.width, y: 0, size: 20});
+  if (Math.random() < 0.03 + gameData.level*0.002) {
+    enemies.push({
+      x: Math.random()*canvas.width,
+      y: 0,
+      size: 20,
+      color: enemyColors[Math.floor(Math.random()*enemyColors.length)]
+    });
+  }
 
   enemies.forEach((e,i) => {
     e.y += 2 + gameData.level * 0.5;
-    ctx.fillStyle = 'red';
-    ctx.fillRect(e.x, e.y, e.size, e.size);
-    if (e.y > player.y-20 && e.x > player.x-15 && e.x < player.x+15) {
+    drawEnemyPlane(e.x, e.y, e.size, e.color);
+
+    if (e.y > player.y-30 && e.x > player.x-50 && e.x < player.x+50) {
+      createExplosion(player.x, player.y, '#FFD700'); // LEDAKAN PAS KENA
       gameData.lives--; enemies.splice(i,1);
+      playSound('hit');
       if (gameData.lives <= 0) gameOver();
     }
     if (e.y > canvas.height) enemies.splice(i,1);
@@ -241,10 +394,12 @@ function updateGame() {
   bullets.forEach((b,i) => {
     b.y -= 10;
     ctx.fillStyle = 'yellow';
-    ctx.fillRect(b.x-2, b.y, 4, 10);
+    ctx.fillRect(b.x-3, b.y, 6, 12);
     enemies.forEach((e,j) => {
-      if (b.y < e.y+20 && b.x > e.x && b.x < e.x+20) {
+      if (b.y < e.y+15 && b.x > e.x-10 && b.x < e.x+10) {
+        createExplosion(e.x, e.y, e.color); // LEDAKAN PAS MATI
         gameData.pi += 1; gameData.score += 10 * gameData.damage;
+        playSound('explosion');
         bullets.splice(i,1); enemies.splice(j,1);
       }
     });
@@ -258,6 +413,8 @@ function updateGame() {
 function gameOver() {
   clearInterval(gameLoop);
   isGameRunning = false;
+  stopMusic();
+  playSound('gameover');
   document.getElementById('startBtn').innerText = "START";
   document.getElementById('popupText').innerText = `Skor Akhir: ${gameData.score}`;
   openPopup('gameOverPopup');
@@ -281,4 +438,4 @@ function updateUI() {
 updateUI();
 </script>
 </body>
-</html>
+                                                                                                                                                          </html>
