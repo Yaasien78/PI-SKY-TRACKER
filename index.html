@@ -24,9 +24,17 @@ body { background:#000; color:white; overflow:hidden; }
   background:#1a1a1a; border:2px solid #6F2DA8; border-radius:12px;
   flex:1; height:100%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative;
 }
 #scoreText { font-size:16px; font-weight:bold; color:#FFD700; }
 #scoreSub { font-size:11px; }
+
+/* TOMBOL SPEAKER KECIL */
+#soundBtn {
+  position:absolute; top:3px; right:5px;
+  background:transparent; border:none; color:white;
+  font-size:16px; padding:2px; cursor:pointer;
+}
 
 /* CANVAS */
 #gameCanvas { display:block; touch-action:none; background:#000; position:absolute; top:65px; }
@@ -65,6 +73,7 @@ body { background:#000; color:white; overflow:hidden; }
 <div id="gameHeader">
   <button class="headerBtn" onclick="openPopup('topupPopup')">💎<br>TOP UP</button>
   <div id="scoreBox">
+    <button id="soundBtn" onclick="toggleSound()">🔊</button>
     <div id="scoreText">SCORE: <span id="score">0</span></div>
     <div id="scoreSub">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
   </div>
@@ -88,6 +97,7 @@ body { background:#000; color:white; overflow:hidden; }
 
 <script>
 let isGameRunning = false;
+let soundOn = true;
 let gameData = { pi: 10, lives: 7, level: 1, score: 0, highScore: 0, bombs: 3, damage: 1 };
 
 const canvas = document.getElementById('gameCanvas');
@@ -95,10 +105,19 @@ const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight - 140; // 65 header + 75 footer
+  canvas.height = window.innerHeight - 140;
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
+// AUDIO SIMPLE
+const shootSound = new Audio("data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA="); // suara tembak pendek
+
+function playSound(sound){ if(soundOn) sound.play(); }
+function toggleSound(){
+  soundOn =!soundOn;
+  document.getElementById('soundBtn').innerText = soundOn? "🔊" : "🔇";
+}
 
 // GAME
 let player = { x: 0, y: 0 };
@@ -113,6 +132,7 @@ function movePlayer(e){
   let touch = e.touches[0];
   if(touch.clientY > 65 && touch.clientY < window.innerHeight - 75){
     player.x = touch.clientX;
+    player.y = touch.clientY - 65; // -65 karena ada header
   }
 }
 
@@ -132,7 +152,10 @@ function resetGame() {
 }
 
 function fireBullet() {
-  if (isGameRunning) bullets.push({x: player.x, y: player.y-25});
+  if (isGameRunning) {
+    bullets.push({x: player.x, y: player.y-20});
+    playSound(shootSound);
+  }
 }
 
 function openPopup(id){ document.getElementById(id).style.display = 'block'; }
@@ -173,6 +196,17 @@ function drawPlayer() {
   ctx.lineTo(player.x + 15, player.y + 10);
   ctx.closePath();
   ctx.fill();
+  
+  // LOGO PI DI TENGAH BADAN PESAWAT
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.arc(player.x, player.y - 5, 9, 0, Math.PI * 2); // di tengah badan
+  ctx.fill();
+  ctx.fillStyle = '#6F2DA8';
+  ctx.font = "bold 12px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("π", player.x, player.y - 1);
+  
   // Api
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
@@ -181,15 +215,6 @@ function drawPlayer() {
   ctx.lineTo(player.x + 5, player.y + 20);
   ctx.closePath();
   ctx.fill();
-  // LOGO PI
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath();
-  ctx.arc(player.x, player.y - 30, 10, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#6F2DA8';
-  ctx.font = "bold 14px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText("π", player.x, player.y - 25);
 }
 
 function updateGame() {
