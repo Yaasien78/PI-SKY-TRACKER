@@ -72,8 +72,7 @@ body { background:#000; color:white; overflow:hidden; }
     <div id="scoreText">SCORE: <span id="score">0</span></div>
     <div id="scoreSub">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
   </div>
-  
-  <button class="headerBtn" id="startBtn">START</button>
+  <button class="headerBtn" id="startBtn" onclick="startGame()">START</button>
 </div>
 
 <!-- FOOTER -->
@@ -136,17 +135,26 @@ document.getElementById('fireBtn').onclick = () => {
 }
 
 function startGame() {
-  player.x = canvas.width/2; player.y = canvas.height-50;
+  if(isGameRunning) return; // biar gak dobel pencet
+  
+  player.x = canvas.width/2; 
+  player.y = canvas.height-50;
   isGameRunning = true;
   resetGame();
   gameLoop = setInterval(updateGame, 1000/60);
+  
+  document.getElementById('startBtn').innerText = "PAUSE"; // biar tau lagi jalan
 }
 
 function resetGame() {
-  gameData.lives = 7; gameData.level = 1; gameData.score = 0; gameData.bombs = 3;
-  bullets = []; enemies = []; updateUI();
-}
-
+  gameData.lives = 7; 
+  gameData.level = 1; 
+  gameData.score = 0; 
+  gameData.bombs = 3;
+  bullets = []; 
+  enemies = []; 
+  updateUI();
+  }
 // POPUP FUNCTION
 function openPopup(id){ document.getElementById(id).style.display = 'block'; }
 function closePopup(id){ document.getElementById(id).style.display = 'none'; }
@@ -246,14 +254,14 @@ function updateGame() {
   if (gameData.score > gameData.level * 100) gameData.level++;
   updateUI();
 }
-
 function gameOver() {
-  clearInterval(gameLoop); isGameRunning = false;
+  clearInterval(gameLoop); 
+  isGameRunning = false;
+  document.getElementById('startBtn').innerText = "START"; // balikin lagi
   document.getElementById('popupText').innerText = `Skor Akhir: ${gameData.score}`;
   openPopup('gameOverPopup');
   if (gameData.score > gameData.highScore) gameData.highScore = gameData.score;
-}
-
+  }
 document.getElementById('payBtn').onclick = () => {
   if (gameData.pi >= 1) {
     gameData.pi -= 1;
@@ -261,7 +269,6 @@ document.getElementById('payBtn').onclick = () => {
     startGame();
   } else { alert('Pi Game tidak cukup! Top Up dulu'); }
 }
-
 function updateUI() {
   document.getElementById('score').innerText = gameData.score;
   document.getElementById('pi').innerText = gameData.pi;
