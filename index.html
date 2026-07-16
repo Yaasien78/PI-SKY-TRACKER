@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:Arial; }
+body { background:#111; color:white; overflow:hidden; }
+
+#container { display:flex; width:300vw; height:100vh; transition: transform 0.3s ease; }
+.view { width:100vw; height:100vh; flex-shrink:0; position:relative; }
+
+/* 1. HOME - MY TRACKER */
+#home { background:#1a1a1a; padding:20px; }
+#home h1 { color:#6F2DA8; text-align:center; margin-bottom:20px; }
+.card { background:#222; padding:15px; border-radius:10px; margin-bottom:15px; }
+
+/* 2. GAME */
+#gameView { background:#000; }
+#gameCanvas { display:block; touch-action:none; }
+#gameUI { position:absolute; top:10px; width:100%; display:flex; justify-content:space-between; padding:0 20px; font-size:16px; }
+#startBtn { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); padding:15px 30px; background:#6F2DA8; border:none; color:white; border-radius:10px; font-size:18px; }
+
+/* 3. MARKET */
+#market { background:#1a1a1a; padding:20px; overflow-y:auto; }
+.item { background:#222; padding:15px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+.buyBtn { background:#6F2DA8; border:none; color:white; padding:8px 15px; border-radius:8px; }
+
+#dots { position:absolute; bottom:20px; width:100%; text-align:center; }
+.dot { display:inline-block; width:10px; height:10px; background:#555; border-radius:50%; margin:0 5px; }
+.dot.active { background:#6F2DA8; }
+
+#popup { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#333; padding:20px; border-radius:15px; text-align:center; display:none; z-index:10; }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <!-- VIEW 1: MY TRACKER -->
+  <div class="view" id="home">
+    <h1>🚀 MY TRACKER</h1>
+    <div class="card">
+      <h3>Saldo Pi Game</h3>
+      <p id="homePi">0 Pi</p>
+    </div>
+    <div class="card">
+      <h3>Statistik</h3>
+      <p>Level Tertinggi: <span id="highLevel">1</span></p>
+      <p>Skor Tertinggi: <span id="highScore">0</span></p>
+    </div>
+    <p style="text-align:center; margin-top:50px;">← Swipe Kanan = Game | Swipe Kiri = Market →</p>
+  </div>
+
+  <!-- VIEW 2: GAME -->
+  <div class="view" id="gameView">
+    <div id="gameUI">
+      <div>❤️ <span id="lives">7</span></div>
+      <div>⭐ <span id="level">1</span></div>
+      <div>🪙 <span id="pi">0</span></div>
+    </div>
+    <button id="startBtn">MULAI GAME</button>
+    <canvas id="gameCanvas"></canvas>
+    <div id="popup">
+      <h2 id="popupTitle"></h2>
+      <p id="popupText"></p>
+      <button id="payBtn" style="padding:10px 20px; background:#6F2DA8; border:none; color:white; border-radius:8px; margin-top:10px;">Bayar 1 Pi Lanjut</button>
+    </div>
+  </div>
+
+  <!-- VIEW 3: MARKET -->
+  <div class="view" id="market">
+    <h2 style="color:#6F2DA8; text-align:center; margin-bottom:20px;">🏪 MARKETPLACE</h2>
+    <div class="item">
+      <div><h4>Extra Nyawa +3</h4><p>Harga: 2 Pi</p></div>
+      <button class="buyBtn" onclick="buyItem(2, 'lives')">Beli</button>
+    </div>
+    <div class="item">
+      <div><h4>Skin Pesawat Emas</h4><p>Harga: 5 Pi</p></div>
+      <button class="buyBtn" onclick="buyItem(5, 'skin')">Beli</button>
+    </div>
+    <div class="item">
+      <div><h4>Perisai 30 Detik</h4><p>Harga: 3 Pi</p></div>
+      <button class="buyBtn" onclick="buyItem(3, 'shield')">Beli</button>
+    </div>
+  </div>
+</div>
+
+<div id="dots">
+  <span class="dot"></span>
+  <span class="dot active"></span>
+  <span class="dot"></span>
+</div>
+
+<script>
+let currentView = 1; // mulai di game
+let startX = 0;
+let gameData = {lives:7, level:1, pi:0, score:0, highLevel:1, highScore:0, hasShield:false};
+
+// SWIPE
+document.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+document.addEventListener('touchend', e => {
+  let endX = e.changedTouches[0].clientX;
+  if(endX < startX - 50 && currentView < 2) currentView++;
+  if(endX > startX + 50 && currentView > 0) currentView--;
+  updateView();
+});
+function updateView(){
+  document.getElementById('container').style.transform = `translateX(-${currentView * 100}vw)`;
+  document.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===currentView));
+}
+
+// GAME
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+let player = {x: canvas.width/2-25, y: canvas.height-120, w:50, h:60, skin:'#C0C0C0'};
+let bullets=[], enemies=[], touchX=null, gameStarted=false;
+
+document.getElementById('startBtn').onclick = () => {
+  gameStarted = true;
+  document.getElementById('startBtn').style.display = 'none';
+}
+
+canvas.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; if(gameStarted) shoot(); });
+canvas.addEventListener('touchmove', e => { if(currentView===1) touchX = e.touches[0].clientX; });
+canvas.addEventListener('touchend', () => touchX=null);
+
+function shoot(){ bullets.push({x: player.x+24, y: player.y-10}); }
+function spawnEnemy(){ enemies.push({x:Math.random()*(canvas.width-40), y:-50, w:40, h:40, speed:1+gameData.level*0.2}); }
+
+function gameLoop(){
+  if(currentView!==1 ||!gameStarted){ requestAnimationFrame(gameLoop); return; }
+
+  ctx.fillStyle='#87CEEB'; ctx.fillRect(0,0,canvas.width,canvas.height*0.8);
+  ctx.fillStyle='#228B22'; ctx.fillRect(0,canvas.height*0.8,canvas.width,canvas.height*0.2);
+
+  if(touchX) player.x += (touchX - (player.x+25)) * 0.1;
+  player.x = Math.max(0, Math.min(canvas.width-player.w, player.x));
+
+  // Draw player
+  ctx.fillStyle=player.skin; ctx.beginPath();
+  ctx.moveTo(player.x+25,player.y); ctx.lineTo(player.x,player.y+60); ctx.lineTo(player.x+50,player.y+60); ctx.fill();
+  ctx.fillStyle='#6F2DA8'; ctx.beginPath(); ctx.arc(player.x+25,player.y-8,12,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 14px Arial'; ctx.textAlign='center'; ctx.fillText('π',player.x+25,player.y-3);
+
+  // Bullets
+  bullets.forEach((b,i)=>{ b.y-=10; ctx.fillStyle='yellow'; ctx.fillRect(b.x,b.y,4,15); if(b.y<0) bullets.splice(i,1); });
+
+  // Enemies
+  if(Math.random()<0.02+gameData.level*0.003) spawnEnemy();
+  enemies.forEach((e,i)=>{
+    e.y+=e.speed; ctx.fillStyle='red'; ctx.fillRect(e.x,e.y,e.w,e.h);
+
+    // Hit
+    bullets.forEach((b,j)=>{ if(b.x>e.x&&b.x<e.x+e.w&&b.y>e.y&&b.y<e.y+e.h){ enemies.splice(i,1); bullets.splice(j,1); gameData.pi++; gameData.score+=10; }});
+
+    // Crash
+    if(player.x<e.x+e.w&&player.x+player.w>e.x&&player.y<e.y+e.h&&player.y+player.h>e.y &&!gameData.hasShield){
+      enemies.splice(i,1); gameData.lives--; if(gameData.lives<=0) gameOver();
+    }
+    if(e.y>canvas.height) enemies.splice(i,1);
+  });
+
+  // Level up
+  if(gameData.score>=gameData.level*100){ gameData.level++; gameData.lives++; }
+  if(gameData.level>10){ gameStarted=false; showPopup("THE END", "Tamat! Bayar 1 Pi untuk reset"); }
+
+  updateUI();
+  requestAnimationFrame(gameLoop);
+}
+
+function updateUI(){
+  document.getElementById('lives').innerText = gameData.lives;
+  document.getElementById('level').innerText = gameData.level;
+  document.getElementById('pi').innerText = gameData.pi;
+  document.getElementById('homePi').innerText = gameData.pi + ' Pi';
+}
+
+function showPopup(title,text){
+  document.getElementById('popupTitle').innerText=title;
+  document.getElementById('popupText').innerText=text;
+  document.getElementById('popup').style.display='block';
+}
+document.getElementById('payBtn').onclick = () => {
+  if(gameData.pi>=1){ gameData.pi--; gameData.lives=3; document.getElementById('popup').style.display='none'; gameStarted=true; }
+  else alert('Pi tidak cukup!');
+}
+
+// MARKET
+function buyItem(price,item){
+  if(gameData.pi<price){ alert('Pi tidak cukup'); return; }
+  gameData.pi-=price;
+  if(item==='lives') gameData.lives+=3;
+  if(item==='skin') player.skin='#FFD700';
+  if(item==='shield') gameData.hasShield=true;
+  updateUI(); alert('Item dibeli!');
+}
+
+updateUI();
+gameLoop();
+</script>
+</body>
+  </html>
