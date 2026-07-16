@@ -8,34 +8,46 @@
 * { margin:0; padding:0; box-sizing:border-box; font-family:Arial; }
 body { background:#000; color:white; overflow:hidden; }
 
-/* HEADER 1 LAYAR */
+/* HEADER 1 LAYAR - RAPI */
 #gameHeader {
-  position:absolute; top:0; left:0; width:100%; height:60px;
+  position:absolute; top:0; left:0; width:100%; height:65px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
   display:flex; justify-content:space-between; align-items:center;
-  padding:0 10px; z-index:5;
+  padding:8px 10px; z-index:5; gap:8px; /* kasih jarak antar box */
 }
 .headerBtn {
-  background:#6F2DA8; border:none; color:white; border-radius:10px;
-  padding:10px 12px; font-size:12px; font-weight:bold;
+  background:#6F2DA8; border:none; color:white; border-radius:12px;
+  padding:10px 5px; font-size:12px; font-weight:bold;
+  flex:1; /* BIAR SAMA BESAR KIRI TENGAH KAN */
+  height:100%;
+  display:flex; align-items:center; justify-content:center;
+}
+#scoreBox { /* Box tengah khusus */
+  background:#1a1a1a; border:2px solid #6F2DA8; border-radius:12px;
+  flex:1; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
 #scoreText { font-size:16px; font-weight:bold; color:#FFD700; }
+#scoreSub { font-size:11px; }
 
 /* CANVAS */
 #gameCanvas { display:block; touch-action:none; background:#000; }
 
-/* FOOTER 1 LAYAR */
+/* FOOTER 1 LAYAR - RAPI */
 #gameFooter {
-  position:absolute; bottom:0; left:0; width:100%; height:70px;
+  position:absolute; bottom:0; left:0; width:100%; height:75px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
   display:flex; justify-content:space-between; align-items:center;
-  padding:0 10px; z-index:5;
+  padding:8px 10px; z-index:5; gap:8px; /* kasih jarak antar box */
 }
 .footerBtn {
   background:#6F2DA8; border:none; color:white; border-radius:12px;
-  padding:12px 15px; font-size:14px; font-weight:bold; flex:1; margin:0 5px;
+  padding:10px 5px; font-size:14px; font-weight:bold; 
+  flex:1; /* BIAR SAMA BESAR KIRI TENGAH KAN */
+  height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
-#fireBtn { background:#FF2D55; font-size:20px; flex:2; }
+#fireBtn { background:#FF2D55; font-size:18px; }
 #bomBtn { background:#FF6D00; }
 
 /* POPUP UMUM */
@@ -47,39 +59,29 @@ body { background:#000; color:white; overflow:hidden; }
 .popup button {
   padding:10px 20px; background:#6F2DA8; border:none; color:white;
   border-radius:8px; margin-top:15px; margin-right:10px;
-}
+  }
 </style>
 </head>
 
 <body>
 <!-- HEADER -->
 <div id="gameHeader">
-  <button class="headerBtn" onclick="openPopup('topupPopup')">💎 TOP UP</button>
-  <div>
+  <button class="headerBtn" onclick="openPopup('topupPopup')">💎<br>TOP UP</button>
+  
+  <div id="scoreBox">
     <div id="scoreText">SCORE: <span id="score">0</span></div>
-    <div style="font-size:12px;">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
+    <div id="scoreSub">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
   </div>
+  
   <button class="headerBtn" id="startBtn">START</button>
 </div>
 
-<!-- GAME -->
-<canvas id="gameCanvas"></canvas>
-
 <!-- FOOTER -->
 <div id="gameFooter">
-  <button class="footerBtn" onclick="openPopup('upgradePopup')">⚡ UPGRADE</button>
-  <button class="footerBtn" id="fireBtn">FIRE 🔥</button>
-  <button class="footerBtn" id="bomBtn">💣 BOM 3</button>
+  <button class="footerBtn" onclick="openPopup('upgradePopup')">⚡<br>UPGRADE</button>
+  <button class="footerBtn" id="fireBtn">FIRE<br>🔥</button>
+  <button class="footerBtn" id="bomBtn">💣<br>BOM 3</button>
 </div>
-
-<!-- POPUP TOP UP -->
-<div id="topupPopup" class="popup">
-  <h2>💎 TOP UP PI</h2>
-  <p>Tambah 10 Pi Game Gratis</p>
-  <button onclick="topUp()">Klaim 10 Pi</button>
-  <button onclick="closePopup('topupPopup')">Tutup</button>
-</div>
-
 <!-- POPUP UPGRADE -->
 <div id="upgradePopup" class="popup">
   <h2>⚡ UPGRADE</h2>
@@ -178,6 +180,7 @@ function useBomb() {
 document.getElementById('bomBtn').onclick = useBomb;
 
 function drawPlayer() {
+  // 1. Gambar Pesawat
   ctx.fillStyle = '#6F2DA8';
   ctx.beginPath();
   ctx.moveTo(player.x, player.y - 20);
@@ -185,7 +188,8 @@ function drawPlayer() {
   ctx.lineTo(player.x + 15, player.y + 10);
   ctx.closePath();
   ctx.fill();
-  // Api
+  
+  // 2. Api
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
   ctx.moveTo(player.x, player.y + 10);
@@ -193,8 +197,18 @@ function drawPlayer() {
   ctx.lineTo(player.x + 5, player.y + 20);
   ctx.closePath();
   ctx.fill();
-}
 
+  // 3. LOGO PI KOIN DI ATAS
+  ctx.fillStyle = '#FFD700'; // emas
+  ctx.beginPath();
+  ctx.arc(player.x, player.y - 30, 10, 0, Math.PI * 2); // lingkaran
+  ctx.fill();
+  
+  ctx.fillStyle = '#6F2DA8'; // tulisan ungu di tengah koin
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("π", player.x, player.y - 25);
+  }
 function updateGame() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
   // Background bintang
