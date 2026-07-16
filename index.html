@@ -2,27 +2,25 @@
 <html>
 <head>
 <title>Pi Sky Tracker - Fly. Shoot. Earn Pi.</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>π</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:Arial; }
 body { background:#000; color:white; overflow:hidden; }
 
-/* HEADER 1 LAYAR - RAPI */
+/* HEADER RAPI */
 #gameHeader {
   position:absolute; top:0; left:0; width:100%; height:65px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
   display:flex; justify-content:space-between; align-items:center;
-  padding:8px 10px; z-index:5; gap:8px; /* kasih jarak antar box */
+  padding:8px 10px; z-index:5; gap:8px;
 }
 .headerBtn {
   background:#6F2DA8; border:none; color:white; border-radius:12px;
   padding:10px 5px; font-size:12px; font-weight:bold;
-  flex:1; /* BIAR SAMA BESAR KIRI TENGAH KAN */
-  height:100%;
+  flex:1; height:100%;
   display:flex; align-items:center; justify-content:center;
 }
-#scoreBox { /* Box tengah khusus */
+#scoreBox {
   background:#1a1a1a; border:2px solid #6F2DA8; border-radius:12px;
   flex:1; height:100%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -31,26 +29,25 @@ body { background:#000; color:white; overflow:hidden; }
 #scoreSub { font-size:11px; }
 
 /* CANVAS */
-#gameCanvas { display:block; touch-action:none; background:#000; }
+#gameCanvas { display:block; touch-action:none; background:#000; position:absolute; top:65px; }
 
-/* FOOTER 1 LAYAR - RAPI */
+/* FOOTER RAPI */
 #gameFooter {
   position:absolute; bottom:0; left:0; width:100%; height:75px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
   display:flex; justify-content:space-between; align-items:center;
-  padding:8px 10px; z-index:5; gap:8px; /* kasih jarak antar box */
+  padding:8px 10px; z-index:5; gap:8px;
 }
 .footerBtn {
   background:#6F2DA8; border:none; color:white; border-radius:12px;
-  padding:10px 5px; font-size:14px; font-weight:bold; 
-  flex:1; /* BIAR SAMA BESAR KIRI TENGAH KAN */
-  height:100%;
+  padding:10px 5px; font-size:14px; font-weight:bold;
+  flex:1; height:100%;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
 #fireBtn { background:#FF2D55; font-size:18px; }
 #bomBtn { background:#FF6D00; }
 
-/* POPUP UMUM */
+/* POPUP */
 .popup {
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   background:#222; padding:25px; border-radius:15px; text-align:center;
@@ -59,7 +56,7 @@ body { background:#000; color:white; overflow:hidden; }
 .popup button {
   padding:10px 20px; background:#6F2DA8; border:none; color:white;
   border-radius:8px; margin-top:15px; margin-right:10px;
-  }
+}
 </style>
 </head>
 
@@ -67,7 +64,6 @@ body { background:#000; color:white; overflow:hidden; }
 <!-- HEADER -->
 <div id="gameHeader">
   <button class="headerBtn" onclick="openPopup('topupPopup')">💎<br>TOP UP</button>
-  
   <div id="scoreBox">
     <div id="scoreText">SCORE: <span id="score">0</span></div>
     <div id="scoreSub">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
@@ -75,28 +71,20 @@ body { background:#000; color:white; overflow:hidden; }
   <button class="headerBtn" id="startBtn" onclick="startGame()">START</button>
 </div>
 
+<!-- GAME -->
+<canvas id="gameCanvas"></canvas>
+
 <!-- FOOTER -->
 <div id="gameFooter">
   <button class="footerBtn" onclick="openPopup('upgradePopup')">⚡<br>UPGRADE</button>
-  <button class="footerBtn" id="fireBtn">FIRE<br>🔥</button>
-  <button class="footerBtn" id="bomBtn">💣<br>BOM 3</button>
-</div>
-<!-- POPUP UPGRADE -->
-<div id="upgradePopup" class="popup">
-  <h2>⚡ UPGRADE</h2>
-  <p>Harga: 5 Pi</p>
-  <p>Damage +1 & Kecepatan +</p>
-  <button onclick="upgrade()">Beli Upgrade</button>
-  <button onclick="closePopup('upgradePopup')">Tutup</button>
+  <button class="footerBtn" id="fireBtn" onclick="fireBullet()">FIRE<br>🔥</button>
+  <button class="footerBtn" id="bomBtn" onclick="useBomb()">💣<br>BOM 3</button>
 </div>
 
-<!-- POPUP GAME OVER -->
-<div id="gameOverPopup" class="popup">
-  <h2 id="popupTitle">GAME OVER</h2>
-  <p id="popupText"></p>
-  <button id="payBtn">Lanjut 1 Pi</button>
-  <button onclick="closePopup('gameOverPopup')">Keluar</button>
-</div>
+<!-- POPUP -->
+<div id="topupPopup" class="popup"><h2>💎 TOP UP PI</h2><p>Tambah 10 Pi Game Gratis</p><button onclick="topUp()">Klaim 10 Pi</button><button onclick="closePopup('topupPopup')">Tutup</button></div>
+<div id="upgradePopup" class="popup"><h2>⚡ UPGRADE</h2><p>Harga: 5 Pi</p><p>Damage +1 & Kecepatan +</p><button onclick="upgrade()">Beli Upgrade</button><button onclick="closePopup('upgradePopup')">Tutup</button></div>
+<div id="gameOverPopup" class="popup"><h2>GAME OVER</h2><p id="popupText"></p><button id="payBtn">Lanjut 1 Pi</button><button onclick="closePopup('gameOverPopup')">Keluar</button></div>
 
 <script>
 let isGameRunning = false;
@@ -107,59 +95,49 @@ const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight - 130; // 60 header + 70 footer
+  canvas.height = window.innerHeight - 140; // 65 header + 75 footer
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // GAME
-let player = { x: 0, y: 0, size: 25 };
+let player = { x: 0, y: 0 };
 let bullets = [];
 let enemies = [];
 let gameLoop;
-let isDragging = false;
 
-canvas.addEventListener('touchstart', e => { isDragging = true; movePlayer(e); });
-canvas.addEventListener('touchmove', e => { if(isDragging) movePlayer(e); });
-canvas.addEventListener('touchend', () => { isDragging = false; });
+canvas.addEventListener('touchstart', e => { movePlayer(e); });
+canvas.addEventListener('touchmove', e => { movePlayer(e); });
 function movePlayer(e){
+  e.preventDefault();
   let touch = e.touches[0];
-  if(touch.clientY > 60 && touch.clientY < window.innerHeight - 70){
+  if(touch.clientY > 65 && touch.clientY < window.innerHeight - 75){
     player.x = touch.clientX;
   }
 }
 
-document.getElementById('startBtn').onclick = startGame;
-document.getElementById('fireBtn').onclick = () => {
-  if (isGameRunning) bullets.push({x: player.x, y: player.y-25});
-}
-
 function startGame() {
-  if(isGameRunning) return; // biar gak dobel pencet
-  
-  player.x = canvas.width/2; 
+  if(isGameRunning) return;
+  player.x = canvas.width/2;
   player.y = canvas.height-50;
   isGameRunning = true;
   resetGame();
   gameLoop = setInterval(updateGame, 1000/60);
-  
-  document.getElementById('startBtn').innerText = "PAUSE"; // biar tau lagi jalan
+  document.getElementById('startBtn').innerText = "PAUSE";
 }
 
 function resetGame() {
-  gameData.lives = 7; 
-  gameData.level = 1; 
-  gameData.score = 0; 
-  gameData.bombs = 3;
-  bullets = []; 
-  enemies = []; 
-  updateUI();
-  }
-// POPUP FUNCTION
+  gameData.lives = 7; gameData.level = 1; gameData.score = 0; gameData.bombs = 3;
+  bullets = []; enemies = []; updateUI();
+}
+
+function fireBullet() {
+  if (isGameRunning) bullets.push({x: player.x, y: player.y-25});
+}
+
 function openPopup(id){ document.getElementById(id).style.display = 'block'; }
 function closePopup(id){ document.getElementById(id).style.display = 'none'; }
 
-// FITUR POPUP
 function topUp() {
   gameData.pi += 10;
   alert('+10 Pi Game ditambahkan!');
@@ -179,16 +157,15 @@ function upgrade() {
 function useBomb() {
   if(gameData.bombs > 0 && isGameRunning){
     gameData.bombs--;
-    enemies = []; // bom bersihin semua musuh
+    enemies = [];
     gameData.score += 50;
     alert('BOM MELEDAK! +50 Score');
     updateUI();
-  } else { alert('BOM HABIS! Beli di Upgrade'); }
+  } else { alert('BOM HABIS!'); }
 }
-document.getElementById('bomBtn').onclick = useBomb;
 
 function drawPlayer() {
-  // 1. Gambar Pesawat
+  // Pesawat
   ctx.fillStyle = '#6F2DA8';
   ctx.beginPath();
   ctx.moveTo(player.x, player.y - 20);
@@ -196,8 +173,7 @@ function drawPlayer() {
   ctx.lineTo(player.x + 15, player.y + 10);
   ctx.closePath();
   ctx.fill();
-  
-  // 2. Api
+  // Api
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
   ctx.moveTo(player.x, player.y + 10);
@@ -205,21 +181,20 @@ function drawPlayer() {
   ctx.lineTo(player.x + 5, player.y + 20);
   ctx.closePath();
   ctx.fill();
-
-  // 3. LOGO PI KOIN DI ATAS
-  ctx.fillStyle = '#FFD700'; // emas
+  // LOGO PI
+  ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.arc(player.x, player.y - 30, 10, 0, Math.PI * 2); // lingkaran
+  ctx.arc(player.x, player.y - 30, 10, 0, Math.PI * 2);
   ctx.fill();
-  
-  ctx.fillStyle = '#6F2DA8'; // tulisan ungu di tengah koin
+  ctx.fillStyle = '#6F2DA8';
   ctx.font = "bold 14px Arial";
   ctx.textAlign = "center";
   ctx.fillText("π", player.x, player.y - 25);
-  }
+}
+
 function updateGame() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // Background bintang
+  // Bintang
   ctx.fillStyle = 'white';
   for(let i=0; i<50; i++){ ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 1, 1); }
 
@@ -254,14 +229,16 @@ function updateGame() {
   if (gameData.score > gameData.level * 100) gameData.level++;
   updateUI();
 }
+
 function gameOver() {
-  clearInterval(gameLoop); 
+  clearInterval(gameLoop);
   isGameRunning = false;
-  document.getElementById('startBtn').innerText = "START"; // balikin lagi
+  document.getElementById('startBtn').innerText = "START";
   document.getElementById('popupText').innerText = `Skor Akhir: ${gameData.score}`;
   openPopup('gameOverPopup');
   if (gameData.score > gameData.highScore) gameData.highScore = gameData.score;
-  }
+}
+
 document.getElementById('payBtn').onclick = () => {
   if (gameData.pi >= 1) {
     gameData.pi -= 1;
@@ -269,11 +246,12 @@ document.getElementById('payBtn').onclick = () => {
     startGame();
   } else { alert('Pi Game tidak cukup! Top Up dulu'); }
 }
+
 function updateUI() {
   document.getElementById('score').innerText = gameData.score;
   document.getElementById('pi').innerText = gameData.pi;
   document.getElementById('lives').innerText = gameData.lives;
-  document.getElementById('bomBtn').innerText = `💣 BOM ${gameData.bombs}`;
+  document.getElementById('bomBtn').innerHTML = `💣<br>BOM ${gameData.bombs}`;
 }
 updateUI();
 </script>
