@@ -4,42 +4,31 @@
 <title>Pi Sky Tracker - Fly. Shoot. Earn Pi.</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>π</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="description" content="Pi Sky Tracker - Game pesawat tembak, tracker statistik, dan marketplace Pi">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:Arial; }
-body { background:#111; color:white; overflow:hidden; }
+body { background:#000; color:white; overflow:hidden; }
 
-#container { display:flex; width:300vw; height:100vh; transition: transform 0.3s ease; }
-.view { width:100vw; height:100vh; flex-shrink:0; position:relative; }
-
-/* 1. HOME - MY TRACKER */
-#home { background:#1a1a1a; padding:20px; }
-#home h1 { color:#6F2DA8; text-align:center; margin-bottom:20px; }
-.card { background:#222; padding:15px; border-radius:10px; margin-bottom:15px; }
-
-/* 2. GAME */
-#gameView { background:#000; }
-#gameCanvas { display:block; touch-action:none; }
-
-/* HEADER BARU DI GAME */
+/* HEADER 1 LAYAR */
 #gameHeader {
   position:absolute; top:0; left:0; width:100%; height:60px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
-  display:none; justify-content:space-between; align-items:center;
+  display:flex; justify-content:space-between; align-items:center;
   padding:0 10px; z-index:5;
 }
 .headerBtn {
   background:#6F2DA8; border:none; color:white; border-radius:10px;
-  padding:10px 15px; font-size:12px; font-weight:bold;
+  padding:10px 12px; font-size:12px; font-weight:bold;
 }
 #scoreText { font-size:16px; font-weight:bold; color:#FFD700; }
-#startBtnHeader { background:#00C853; }
 
-/* FOOTER BARU DI GAME */
+/* CANVAS */
+#gameCanvas { display:block; touch-action:none; background:#000; }
+
+/* FOOTER 1 LAYAR */
 #gameFooter {
   position:absolute; bottom:0; left:0; width:100%; height:70px;
   background:rgba(17,17,17,0.95); backdrop-filter:blur(10px);
-  display:none; justify-content:space-between; align-items:center;
+  display:flex; justify-content:space-between; align-items:center;
   padding:0 10px; z-index:5;
 }
 .footerBtn {
@@ -49,95 +38,69 @@ body { background:#111; color:white; overflow:hidden; }
 #fireBtn { background:#FF2D55; font-size:20px; flex:2; }
 #bomBtn { background:#FF6D00; }
 
-/* 3. MARKET */
-#market { background:#1a1a1a; padding:20px; overflow-y:auto; }
-.item { background:#222; padding:15px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-.buyBtn { background:#6F2DA8; border:none; color:white; padding:8px 15px; border-radius:8px; }
-
-#dots { position:absolute; bottom:20px; width:100%; text-align:center; z-index:10; }
-.dot { display:inline-block; width:10px; height:10px; background:#555; border-radius:50%; margin:0 5px; }
-.dot.active { background:#6F2DA8; }
-
-#popup { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#333; padding:20px; border-radius:15px; text-align:center; display:none; z-index:10; }
+/* POPUP UMUM */
+.popup {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:#222; padding:25px; border-radius:15px; text-align:center;
+  display:none; z-index:10; border:2px solid #6F2DA8; width:80%;
+}
+.popup button {
+  padding:10px 20px; background:#6F2DA8; border:none; color:white;
+  border-radius:8px; margin-top:15px; margin-right:10px;
+}
 </style>
 </head>
 
 <body>
-<div id="container">
-  <!-- VIEW 1: MY TRACKER -->
-  <div class="view" id="home">
-    <h1>🚀 PI SKY TRACKER</h1>
-    <p style="text-align:center; color:#6F2DA8; margin-bottom:20px;">Fly. Shoot. Earn Pi.</p>
-    <h2 style="color:#6F2DA8; text-align:center; margin-bottom:20px;">📊 MY TRACKER</h2>
-    <div class="card">
-      <h3>Saldo Pi Game</h3>
-      <p id="homePi">10 Pi</p>
-    </div>
-    <div class="card">
-      <h3>Statistik</h3>
-      <p>Level Tertinggi: <span id="highLevel">1</span></p>
-      <p>Skor Tertinggi: <span id="highScore">0</span></p>
-    </div>
-    <p style="text-align:center; margin-top:50px;">← Swipe Kanan = Game | Swipe Kiri = Market →</p>
+<!-- HEADER -->
+<div id="gameHeader">
+  <button class="headerBtn" onclick="openPopup('topupPopup')">💎 TOP UP</button>
+  <div>
+    <div id="scoreText">SCORE: <span id="score">0</span></div>
+    <div style="font-size:12px;">PI: <span id="pi">10</span> | ❤️<span id="lives">7</span></div>
   </div>
-
-  <!-- VIEW 2: GAME -->
-  <div class="view" id="gameView">
-    <!-- HEADER BARU -->
-    <div id="gameHeader">
-      <button class="headerBtn" onclick="topUp()">💎 TOP UP</button>
-      <div id="scoreText">SCORE: <span id="score">0</span></div>
-      <button class="headerBtn" id="startBtnHeader">START</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <!-- FOOTER BARU -->
-    <div id="gameFooter">
-      <button class="footerBtn" onclick="upgrade()">⚡ UPGRADE</button>
-      <button class="footerBtn" id="fireBtn">FIRE 🔥</button>
-      <button class="footerBtn" id="bomBtn" onclick="useBomb()">💣 BOM</button>
-    </div>
-
-    <div id="popup">
-      <h2 id="popupTitle"></h2>
-      <p id="popupText"></p>
-      <button id="payBtn" style="padding:10px 20px; background:#6F2DA8; border:none; color:white; border-radius:8px; margin-top:10px;">Lanjut Bayar 1 Pi</button>
-    </div>
-  </div>
-
-  <!-- VIEW 3: MARKET -->
-  <div class="view" id="market">
-    <h2 style="color:#6F2DA8; text-align:center; margin-bottom:20px;">🛒 MARKETPLACE</h2>
-    <div class="item">
-      <div><h4>Extra Nyawa +3</h4><p>Harga: 2 Pi</p></div>
-      <button class="buyBtn" onclick="buyItem(2, 'lives')">Beli</button>
-    </div>
-    <div class="item">
-      <div><h4>Skin Pesawat Emas</h4><p>Harga: 5 Pi</p></div>
-      <button class="buyBtn" onclick="buyItem(5, 'skin')">Beli</button>
-    </div>
-    <div class="item">
-      <div><h4>Perisai 30s</h4><p>Harga: 3 Pi</p></div>
-      <button class="buyBtn" onclick="buyItem(3, 'shield')">Beli</button>
-    </div>
-  </div>
+  <button class="headerBtn" id="startBtn">START</button>
 </div>
 
-<div id="dots">
-  <span class="dot active"></span>
-  <span class="dot"></span>
-  <span class="dot"></span>
+<!-- GAME -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- FOOTER -->
+<div id="gameFooter">
+  <button class="footerBtn" onclick="openPopup('upgradePopup')">⚡ UPGRADE</button>
+  <button class="footerBtn" id="fireBtn">FIRE 🔥</button>
+  <button class="footerBtn" id="bomBtn">💣 BOM 3</button>
+</div>
+
+<!-- POPUP TOP UP -->
+<div id="topupPopup" class="popup">
+  <h2>💎 TOP UP PI</h2>
+  <p>Tambah 10 Pi Game Gratis</p>
+  <button onclick="topUp()">Klaim 10 Pi</button>
+  <button onclick="closePopup('topupPopup')">Tutup</button>
+</div>
+
+<!-- POPUP UPGRADE -->
+<div id="upgradePopup" class="popup">
+  <h2>⚡ UPGRADE</h2>
+  <p>Harga: 5 Pi</p>
+  <p>Damage +1 & Kecepatan +</p>
+  <button onclick="upgrade()">Beli Upgrade</button>
+  <button onclick="closePopup('upgradePopup')">Tutup</button>
+</div>
+
+<!-- POPUP GAME OVER -->
+<div id="gameOverPopup" class="popup">
+  <h2 id="popupTitle">GAME OVER</h2>
+  <p id="popupText"></p>
+  <button id="payBtn">Lanjut 1 Pi</button>
+  <button onclick="closePopup('gameOverPopup')">Keluar</button>
 </div>
 
 <script>
-let currentView = 1; 
-let startX = 0;
 let isGameRunning = false;
-let gameData = { pi: 10, lives: 7, level: 1, score: 0, highScore: 0, highLevel: 1, bombs: 3 };
+let gameData = { pi: 10, lives: 7, level: 1, score: 0, highScore: 0, bombs: 3, damage: 1 };
 
-const container = document.getElementById('container');
-const dots = document.querySelectorAll('.dot');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -147,24 +110,6 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
-
-// SWIPE
-document.addEventListener('touchstart', e => { if(currentView!== 1) startX = e.touches[0].clientX; });
-document.addEventListener('touchend', e => {
-  if(currentView!== 1){
-    let endX = e.changedTouches[0].clientX;
-    let diff = startX - endX;
-    if (Math.abs(diff) > 50) {
-      if (diff > 0 && currentView < 2) currentView++;
-      if (diff < 0 && currentView > 0) currentView--;
-      updateView();
-    }
-  }
-});
-function updateView() {
-  container.style.transform = `translateX(-${currentView * 100}vw)`;
-  dots.forEach((dot, i) => { dot.classList.toggle('active', i === currentView); });
-}
 
 // GAME
 let player = { x: 0, y: 0, size: 25 };
@@ -178,24 +123,21 @@ canvas.addEventListener('touchmove', e => { if(isDragging) movePlayer(e); });
 canvas.addEventListener('touchend', () => { isDragging = false; });
 function movePlayer(e){
   let touch = e.touches[0];
-  if(touch.clientY > 60 && touch.clientY < window.innerHeight - 70){ // biar gak ketekan header/footer
+  if(touch.clientY > 60 && touch.clientY < window.innerHeight - 70){
     player.x = touch.clientX;
   }
 }
 
-document.getElementById('startBtnHeader').onclick = startGame;
+document.getElementById('startBtn').onclick = startGame;
+document.getElementById('fireBtn').onclick = () => {
+  if (isGameRunning) bullets.push({x: player.x, y: player.y-25});
+}
 
 function startGame() {
   player.x = canvas.width/2; player.y = canvas.height-50;
-  document.getElementById('gameHeader').style.display = 'flex';
-  document.getElementById('gameFooter').style.display = 'flex';
   isGameRunning = true;
   resetGame();
   gameLoop = setInterval(updateGame, 1000/60);
-}
-
-document.getElementById('fireBtn').onclick = () => {
-  if (isGameRunning) bullets.push({x: player.x, y: player.y-25});
 }
 
 function resetGame() {
@@ -203,17 +145,24 @@ function resetGame() {
   bullets = []; enemies = []; updateUI();
 }
 
-// FITUR BARU
+// POPUP FUNCTION
+function openPopup(id){ document.getElementById(id).style.display = 'block'; }
+function closePopup(id){ document.getElementById(id).style.display = 'none'; }
+
+// FITUR POPUP
 function topUp() {
   gameData.pi += 10;
   alert('+10 Pi Game ditambahkan!');
   updateUI();
+  closePopup('topupPopup');
 }
 
 function upgrade() {
   if(gameData.pi >= 5){
     gameData.pi -= 5;
-    alert('Upgrade Berhasil! Damage +1');
+    gameData.damage += 1;
+    alert('Upgrade Berhasil! Damage: ' + gameData.damage);
+    closePopup('upgradePopup');
   } else { alert('Pi tidak cukup!'); }
 }
 
@@ -221,10 +170,12 @@ function useBomb() {
   if(gameData.bombs > 0 && isGameRunning){
     gameData.bombs--;
     enemies = []; // bom bersihin semua musuh
-    alert('BOM MELEDAK!');
+    gameData.score += 50;
+    alert('BOM MELEDAK! +50 Score');
     updateUI();
-  } else { alert('BOM HABIS!'); }
+  } else { alert('BOM HABIS! Beli di Upgrade'); }
 }
+document.getElementById('bomBtn').onclick = useBomb;
 
 function drawPlayer() {
   ctx.fillStyle = '#6F2DA8';
@@ -234,6 +185,7 @@ function drawPlayer() {
   ctx.lineTo(player.x + 15, player.y + 10);
   ctx.closePath();
   ctx.fill();
+  // Api
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
   ctx.moveTo(player.x, player.y + 10);
@@ -245,10 +197,14 @@ function drawPlayer() {
 
 function updateGame() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Background bintang
+  ctx.fillStyle = 'white';
+  for(let i=0; i<50; i++){ ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 1, 1); }
+
   drawPlayer();
-  
-  if (Math.random() < 0.03) enemies.push({x: Math.random()*canvas.width, y: 0, size: 20});
-  
+
+  if (Math.random() < 0.03 + gameData.level*0.002) enemies.push({x: Math.random()*canvas.width, y: 0, size: 20});
+
   enemies.forEach((e,i) => {
     e.y += 2 + gameData.level * 0.5;
     ctx.fillStyle = 'red';
@@ -259,60 +215,46 @@ function updateGame() {
     }
     if (e.y > canvas.height) enemies.splice(i,1);
   });
-  
+
   bullets.forEach((b,i) => {
     b.y -= 10;
     ctx.fillStyle = 'yellow';
     ctx.fillRect(b.x-2, b.y, 4, 10);
     enemies.forEach((e,j) => {
       if (b.y < e.y+20 && b.x > e.x && b.x < e.x+20) {
-        gameData.pi += 1; gameData.score += 10;
+        gameData.pi += 1; gameData.score += 10 * gameData.damage;
         bullets.splice(i,1); enemies.splice(j,1);
       }
     });
     if (b.y < 0) bullets.splice(i,1);
   });
-  
+
   if (gameData.score > gameData.level * 100) gameData.level++;
   updateUI();
 }
 
 function gameOver() {
   clearInterval(gameLoop); isGameRunning = false;
-  document.getElementById('popup').style.display = 'block';
-  document.getElementById('popupTitle').innerText = 'GAME OVER';
-  document.getElementById('popupText').innerText = `Skor: ${gameData.score}. Lanjut bayar 1 Pi?`;
-  if (gameData.score > gameData.highScore) {
-    gameData.highScore = gameData.score; gameData.highLevel = gameData.level;
-  }
+  document.getElementById('popupText').innerText = `Skor Akhir: ${gameData.score}`;
+  openPopup('gameOverPopup');
+  if (gameData.score > gameData.highScore) gameData.highScore = gameData.score;
 }
 
 document.getElementById('payBtn').onclick = () => {
   if (gameData.pi >= 1) {
     gameData.pi -= 1;
-    document.getElementById('popup').style.display = 'none';
+    closePopup('gameOverPopup');
     startGame();
   } else { alert('Pi Game tidak cukup! Top Up dulu'); }
-}
-
-function buyItem(price, type) {
-  if (gameData.pi >= price) {
-    gameData.pi -= price;
-    if (type === 'lives') gameData.lives += 3;
-    if (type === 'shield') gameData.bombs += 1;
-    alert('Pembelian Berhasil!'); updateUI();
-  } else { alert('Pi Game tidak cukup!'); }
 }
 
 function updateUI() {
   document.getElementById('score').innerText = gameData.score;
   document.getElementById('pi').innerText = gameData.pi;
-  document.getElementById('homePi').innerText = gameData.pi + ' Pi';
-  document.getElementById('highScore').innerText = gameData.highScore;
-  document.getElementById('highLevel').innerText = gameData.highLevel;
+  document.getElementById('lives').innerText = gameData.lives;
   document.getElementById('bomBtn').innerText = `💣 BOM ${gameData.bombs}`;
 }
 updateUI();
 </script>
 </body>
-  </html>
+</html>
