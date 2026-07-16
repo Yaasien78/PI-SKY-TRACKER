@@ -32,6 +32,19 @@ body { background:#111; color:white; overflow:hidden; }
 .dot.active { background:#6F2DA8; }
 
 #popup { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#333; padding:20px; border-radius:15px; text-align:center; display:none; z-index:10; }
+/* FOOTER GAME */
+#gameFooter {
+  position:absolute; bottom:0; left:0; width:100%; height:70px;
+  background:rgba(17,17,17,0.9); backdrop-filter:blur(10px);
+  display:flex; justify-content:space-between; align-items:center;
+  padding:0 10px; z-index:5;
+}
+.footerBtn {
+  background:#6F2DA8; border:none; color:white; border-radius:12px;
+  padding:12px 18px; font-size:14px; font-weight:bold;
+}
+#fireBtn { background:#FF2D55; font-size:18px; }
+#starBtn { background:#FFD700; color:#111; }
 </style>
 </head>
 
@@ -64,6 +77,11 @@ body { background:#111; color:white; overflow:hidden; }
     </div>
     <button id="startBtn">MULAI GAME</button>
     <canvas id="gameCanvas"></canvas>
+    <div id="gameFooter">
+  <button class="footerBtn" onclick="goToMarket()">🛒 BELI</button>
+  <button class="footerBtn" id="starBtn">★ <span id="footerLevel">1</span></button>
+  <button class="footerBtn" id="fireBtn">FIRE 🔥</button>
+    </div>
     <div id="popup">
       <h2 id="popupTitle"></h2>
       <p id="popupText"></p>
@@ -96,149 +114,135 @@ body { background:#111; color:white; overflow:hidden; }
 </div>
 
 <script>
-let currentView = 1; // 0=Home, 1=Game, 2=Market
+let currentView = 1;
 let startX = 0;
 let isGameRunning = false;
+let gameData = { pi: 10, lives: 7, level: 1, score: 0, highScore: 0, highLevel: 1 }; // Kasih 10 Pi awal buat tes
 
-// DATA GAME
-let gameData = {
-  pi: 0,
-  lives: 7,
-  level: 1,
-  score: 0,
-  highScore: 0,
-  highLevel: 1
-};
-
-// ELEMEN
 const container = document.getElementById('container');
 const dots = document.querySelectorAll('.dot');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// RESIZE CANVAS
 function resizeCanvas() {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight - 70; // Kurangi tinggi footer
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 // 1. SWIPE NAVIGATION
-document.addEventListener('touchstart', e => {
-  startX = e.touches[0].clientX;
-});
-
+document.addEventListener('touchstart', e => { if(currentView!== 1) startX = e.touches[0].clientX; });
 document.addEventListener('touchend', e => {
-  let endX = e.changedTouches[0].clientX;
-  let diff = startX - endX;
-  
-  if (Math.abs(diff) > 50) { // minimal swipe 50px
-    if (diff > 0 && currentView < 2) currentView++; // swipe kiri
-    if (diff < 0 && currentView > 0) currentView--; // swipe kanan
-    updateView();
+  if(currentView!== 1){
+    let endX = e.changedTouches[0].clientX;
+    let diff = startX - endX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentView < 2) currentView++;
+      if (diff < 0 && currentView > 0) currentView--;
+      updateView();
+    }
   }
 });
-
 function updateView() {
   container.style.transform = `translateX(-${currentView * 100}vw)`;
-  dots.forEach((dot, i) => {
-    dot.classList.toggle('active', i === currentView);
-  });
+  dots.forEach((dot, i) => { dot.classList.toggle('active', i === currentView); });
 }
+function goToMarket(){ currentView = 2; updateView(); }
 
-// 2. GAME LOGIC SEDERHANA
-let player = { x: canvas.width/2, y: canvas.height-80, size: 30 };
+// 2. GAME LOGIC BARU
+let player = { x: canvas.width/2, y: canvas.height-100, size: 25 };
 let bullets = [];
 let enemies = [];
 let gameLoop;
+let isDragging = false;
+
+// GERAKIN PESAWAT PAKE DRAG
+canvas.addEventListener('touchstart', e => { isDragging = true; movePlayer(e); });
+canvas.addEventListener('touchmove', e => { if(isDragging) movePlayer(e); });
+canvas.addEventListener('touchend', () => { isDragging = false; });
+function movePlayer(e){
+  let touch = e.touches[0];
+  player.x = touch.clientX;
+}
 
 document.getElementById('startBtn').onclick = () => {
   document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('gameFooter').style.display = 'flex';
   isGameRunning = true;
   resetGame();
   gameLoop = setInterval(updateGame, 1000/60);
 }
 
+document.getElementById('fireBtn').onclick = () => {
+  if (isGameRunning) bullets.push({x: player.x, y: player.y-25});
+}
+
 function resetGame() {
-  gameData.lives = 7;
-  gameData.level = 1;
-  gameData.score = 0;
-  bullets = [];
-  enemies = [];
-  updateUI();
+  gameData.lives = 7; gameData.level = 1; gameData.score = 0;
+  bullets = []; enemies = []; updateUI();
+}
+
+function drawPlayer() {
+  // Gambar pesawat segitiga
+  ctx.fillStyle = '#6F2DA8';
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y - 20);
+  ctx.lineTo(player.x - 15, player.y + 10);
+  ctx.lineTo(player.x + 15, player.y + 10);
+  ctx.closePath();
+  ctx.fill();
+  // Api
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y + 10);
+  ctx.lineTo(player.x - 5, player.y + 20);
+  ctx.lineTo(player.x + 5, player.y + 20);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function updateGame() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawPlayer();
   
-  // Gambar player
-  ctx.fillStyle = '#6F2DA8';
-  ctx.fillRect(player.x-15, player.y-15, 30, 30);
+  if (Math.random() < 0.03) enemies.push({x: Math.random()*canvas.width, y: 0, size: 20});
   
-  // Spawn musuh
-  if (Math.random() < 0.02) {
-    enemies.push({x: Math.random()*canvas.width, y: 0, size: 20});
-  }
-  
-  // Update musuh
   enemies.forEach((e,i) => {
-    e.y += 2 + gameData.level;
+    e.y += 2 + gameData.level * 0.5;
     ctx.fillStyle = 'red';
     ctx.fillRect(e.x, e.y, e.size, e.size);
-    
-    // Tabrakan
-    if (e.y > player.y-15 && e.x > player.x-15 && e.x < player.x+15) {
-      gameData.lives--;
-      enemies.splice(i,1);
+    if (e.y > player.y-20 && e.x > player.x-15 && e.x < player.x+15) {
+      gameData.lives--; enemies.splice(i,1);
       if (gameData.lives <= 0) gameOver();
     }
     if (e.y > canvas.height) enemies.splice(i,1);
   });
   
-  // Update peluru
   bullets.forEach((b,i) => {
-    b.y -= 7;
+    b.y -= 10;
     ctx.fillStyle = 'yellow';
-    ctx.fillRect(b.x, b.y, 4, 10);
-    
-    // Hit musuh
+    ctx.fillRect(b.x-2, b.y, 4, 10);
     enemies.forEach((e,j) => {
       if (b.y < e.y+20 && b.x > e.x && b.x < e.x+20) {
-        gameData.pi += 1;
-        gameData.score += 10;
-        bullets.splice(i,1);
-        enemies.splice(j,1);
+        gameData.pi += 1; gameData.score += 10;
+        bullets.splice(i,1); enemies.splice(j,1);
       }
     });
     if (b.y < 0) bullets.splice(i,1);
   });
   
-  // Naik level
-  if (gameData.score > gameData.level * 100) {
-    gameData.level++;
-  }
-  
+  if (gameData.score > gameData.level * 100) gameData.level++;
   updateUI();
 }
 
-// Tembak pas tap layar di area game
-canvas.addEventListener('touchstart', () => {
-  if (isGameRunning) {
-    bullets.push({x: player.x, y: player.y-20});
-  }
-});
-
 function gameOver() {
-  clearInterval(gameLoop);
-  isGameRunning = false;
+  clearInterval(gameLoop); isGameRunning = false;
   document.getElementById('popup').style.display = 'block';
   document.getElementById('popupTitle').innerText = 'GAME OVER';
   document.getElementById('popupText').innerText = `Skor: ${gameData.score}. Lanjut bayar 1 Pi?`;
-  
   if (gameData.score > gameData.highScore) {
-    gameData.highScore = gameData.score;
-    gameData.highLevel = gameData.level;
+    gameData.highScore = gameData.score; gameData.highLevel = gameData.level;
   }
 }
 
@@ -247,33 +251,27 @@ document.getElementById('payBtn').onclick = () => {
     gameData.pi -= 1;
     document.getElementById('popup').style.display = 'none';
     document.getElementById('startBtn').style.display = 'block';
-  } else {
-    alert('Pi Game tidak cukup! Beli di Market dulu');
-  }
+    document.getElementById('gameFooter').style.display = 'none';
+  } else { alert('Pi Game tidak cukup!'); }
 }
 
-// 3. MARKET
 function buyItem(price, type) {
   if (gameData.pi >= price) {
     gameData.pi -= price;
     if (type === 'lives') gameData.lives += 3;
-    alert('Pembelian Berhasil!');
-    updateUI();
-  } else {
-    alert('Pi Game tidak cukup!');
-  }
+    alert('Pembelian Berhasil!'); updateUI();
+  } else { alert('Pi Game tidak cukup!'); }
 }
 
-// 4. UPDATE UI
 function updateUI() {
   document.getElementById('lives').innerText = gameData.lives;
   document.getElementById('level').innerText = gameData.level;
+  document.getElementById('footerLevel').innerText = gameData.level;
   document.getElementById('pi').innerText = gameData.pi;
   document.getElementById('homePi').innerText = gameData.pi + ' Pi';
   document.getElementById('highScore').innerText = gameData.highScore;
   document.getElementById('highLevel').innerText = gameData.highLevel;
 }
-
 updateUI();
 </script>
 </body>
