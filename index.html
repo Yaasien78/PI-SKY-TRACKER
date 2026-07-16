@@ -149,8 +149,7 @@ let particles = [];
 function createExplosion(x, y, color){
   for(let i=0; i<15; i++){
     particles.push({
-      x: x,
-      y: y,
+      x: x, y: y,
       vx: (Math.random() - 0.5) * 8,
       vy: (Math.random() - 0.5) * 8,
       size: Math.random() * 4 + 2,
@@ -274,7 +273,7 @@ function startGame() {
   audioCtx.resume();
   initBackground();
   player.x = canvas.width/2;
-  player.y = canvas.height-80;
+  player.y = canvas.height-50;
   isGameRunning = true;
   resetGame();
   playMusic();
@@ -289,7 +288,7 @@ function resetGame() {
 
 function fireBullet() {
   if (isGameRunning) {
-    bullets.push({x: player.x, y: player.y-60});
+    bullets.push({x: player.x, y: player.y-25});
     playSound('shoot');
   }
 }
@@ -316,7 +315,7 @@ function upgrade() {
 function useBomb() {
   if(gameData.bombs > 0 && isGameRunning){
     gameData.bombs--;
-    enemies.forEach(e => createExplosion(e.x, e.y, e.color)); // ledakin semua
+    enemies.forEach(e => createExplosion(e.x, e.y, e.color));
     enemies = [];
     gameData.score += 50;
     playSound('explosion');
@@ -326,29 +325,38 @@ function useBomb() {
 }
 
 function drawPlayer() {
-  const size = 3;
+  const size = 1.5; // DARI 3 JADI 1.5 = 1/2 KALI
+  
+  // BENTUK PESAWAT JET MODERN
   ctx.fillStyle = '#6F2DA8';
   ctx.beginPath();
-  ctx.moveTo(player.x, player.y - 20*size);
-  ctx.lineTo(player.x - 15*size, player.y + 10*size);
-  ctx.lineTo(player.x + 15*size, player.y + 10*size);
+  ctx.moveTo(player.x, player.y - 15*size); // hidung
+  ctx.lineTo(player.x - 10*size, player.y + 5*size); // sayap kiri
+  ctx.lineTo(player.x - 5*size, player.y + 10*size); // badan
+  ctx.lineTo(player.x + 5*size, player.y + 10*size); // badan
+  ctx.lineTo(player.x + 10*size, player.y + 5*size); // sayap kanan
   ctx.closePath();
   ctx.fill();
 
+  // EKOR
+  ctx.fillRect(player.x - 3*size, player.y + 8*size, 6*size, 8*size);
+
+  // LOGO PI KECIL DI TENGAH BODY
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.arc(player.x, player.y - 5*size, 9*size, 0, Math.PI * 2);
+  ctx.arc(player.x, player.y, 6*size, 0, Math.PI * 2); // dikecilin
   ctx.fill();
   ctx.fillStyle = '#6F2DA8';
-  ctx.font = `bold ${12*size}px Arial`;
+  ctx.font = `bold ${8*size}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText("π", player.x, player.y - 1*size);
-
+  ctx.fillText("π", player.x, player.y + 2*size);
+  
+  // API EKOR
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.moveTo(player.x, player.y + 10*size);
-  ctx.lineTo(player.x - 5*size, player.y + 20*size);
-  ctx.lineTo(player.x + 5*size, player.y + 20*size);
+  ctx.moveTo(player.x, player.y + 18*size);
+  ctx.lineTo(player.x - 4*size, player.y + 25*size);
+  ctx.lineTo(player.x + 4*size, player.y + 25*size);
   ctx.closePath();
   ctx.fill();
 }
@@ -356,24 +364,24 @@ function drawPlayer() {
 function drawEnemyPlane(x, y, size, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(x, y - 10);
-  ctx.lineTo(x - 8, y + 5);
-  ctx.lineTo(x + 8, y + 5);
+  ctx.moveTo(x, y - 8);
+  ctx.lineTo(x - 6, y + 4);
+  ctx.lineTo(x + 6, y + 4);
   ctx.closePath();
   ctx.fill();
-  ctx.fillRect(x-12, y-2, 24, 4);
+  ctx.fillRect(x-8, y-1, 16, 3);
 }
 
 function updateGame() {
   drawBackground();
-  updateParticles(); // UPDATE LEDAKAN
+  updateParticles();
   drawPlayer();
 
   if (Math.random() < 0.03 + gameData.level*0.002) {
     enemies.push({
       x: Math.random()*canvas.width,
       y: 0,
-      size: 20,
+      size: 16,
       color: enemyColors[Math.floor(Math.random()*enemyColors.length)]
     });
   }
@@ -382,8 +390,8 @@ function updateGame() {
     e.y += 2 + gameData.level * 0.5;
     drawEnemyPlane(e.x, e.y, e.size, e.color);
 
-    if (e.y > player.y-30 && e.x > player.x-50 && e.x < player.x+50) {
-      createExplosion(player.x, player.y, '#FFD700'); // LEDAKAN PAS KENA
+    if (e.y > player.y-20 && e.x > player.x-25 && e.x < player.x+25) {
+      createExplosion(player.x, player.y, '#FFD700');
       gameData.lives--; enemies.splice(i,1);
       playSound('hit');
       if (gameData.lives <= 0) gameOver();
@@ -394,10 +402,10 @@ function updateGame() {
   bullets.forEach((b,i) => {
     b.y -= 10;
     ctx.fillStyle = 'yellow';
-    ctx.fillRect(b.x-3, b.y, 6, 12);
+    ctx.fillRect(b.x-2, b.y, 4, 8);
     enemies.forEach((e,j) => {
-      if (b.y < e.y+15 && b.x > e.x-10 && b.x < e.x+10) {
-        createExplosion(e.x, e.y, e.color); // LEDAKAN PAS MATI
+      if (b.y < e.y+12 && b.x > e.x-8 && b.x < e.x+8) {
+        createExplosion(e.x, e.y, e.color);
         gameData.pi += 1; gameData.score += 10 * gameData.damage;
         playSound('explosion');
         bullets.splice(i,1); enemies.splice(j,1);
@@ -438,4 +446,4 @@ function updateUI() {
 updateUI();
 </script>
 </body>
-                                                                                                                                                          </html>
+</html>
